@@ -97,11 +97,14 @@ The backend is a Flask API (nea_agent.py) hosted on IBM Cloud. It fetches data f
 1. Pull live data from data.gov.sg  
 2. Show AI predicting a haze or heat risk  
 3. Show watsonx Orchestrate automatically executing responses  
-4. Display action logs and explanations  
+4. Display action logs and explanations
+
+https://youtu.be/M9EcBJu7QdE?si=WfQk9ZYcmbS7RvEZ 
 
 
 
 ## 📌 Repository
 
 https://github.com/shaira44444/urbanpulse
+
 
