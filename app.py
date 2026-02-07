@@ -8,7 +8,19 @@ app = Flask(__name__)
 @app.post("/alert")
 def alert():
     payload = request.get_json(silent=True) or {}
-    # Mock action for demo
+
+    if DEMO_MODE:
+        # Demo-safe behavior
+        return jsonify({
+            "status": "demo_mode_alert_logged",
+            "note": "No external systems were triggered",
+            "received": payload
+        })
+
+    # Live mode (future / watsonx / Xero)
+    # from xero_client import send_alert_to_xero
+    # result = send_alert_to_xero(payload)
+
     return jsonify({
         "status": "alert_triggered",
         "received": payload
