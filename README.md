@@ -48,7 +48,6 @@ UrbanPulse addresses the missing layer:
 
 
 ## 🧠 System Overview
-
 UrbanPulse is built using a **three-layer agentic architecture**.
 
 ### Layer 1: Live Data (Simulated)
@@ -69,10 +68,8 @@ Using **IBM watsonx Orchestrate**, the system acts without human input:
 - Sends automated facility and logistics nudges
 - Logs all actions for auditability
 
----
 
 ## 🤖 Why This Is Agentic AI
-
 UrbanPulse demonstrates **high autonomy and agency**:
 - **Predicts** risk before impact
 - **Acts** without human prompts
@@ -106,5 +103,6 @@ https://youtu.be/M9EcBJu7QdE?si=WfQk9ZYcmbS7RvEZ
 ## 📌 Repository
 
 https://github.com/shaira44444/urbanpulse
+
 
 
