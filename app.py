@@ -1,6 +1,8 @@
 import os
 from flask import Flask, jsonify, Response, request
 
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
 app = Flask(__name__)
 
 @app.post("/alert")
