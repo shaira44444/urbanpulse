@@ -10,7 +10,7 @@ UrbanPulse provides real-time health alerts based on Singapore's air quality and
 * **PSI 51-100 (Moderate)**: Normal activity; sensitive groups monitor symptoms.
 * **PSI > 100 (Unhealthy)**: Automate alert to Polyclinics to prepare masks and resources.
 
-## 🧩 Agent Architecture (watsonx Orchestrate)
+## Agent Architecture (watsonx Orchestrate)
 
 UrbanPulse is implemented as a **multi-agent system** using **IBM watsonx Orchestrate**, where each agent has a clear responsibility and operates autonomously under orchestration.
 
@@ -47,7 +47,7 @@ UrbanPulse addresses the missing layer:
 **AI agents that predict, negotiate, and execute actions automatically across systems.**
 
 
-## 🧠 System Overview
+## System Overview
 UrbanPulse is built using a **three-layer agentic architecture**.
 
 ### Layer 1: Live Data (Simulated)
@@ -69,7 +69,7 @@ Using **IBM watsonx Orchestrate**, the system acts without human input:
 - Logs all actions for auditability
 
 
-## 🤖 Why This Is Agentic AI
+## Why This Is Agentic AI
 UrbanPulse demonstrates **high autonomy and agency**:
 - **Predicts** risk before impact
 - **Acts** without human prompts
@@ -79,7 +79,7 @@ UrbanPulse demonstrates **high autonomy and agency**:
 This is not “AI + alerts” — it is **agent-to-agent negotiation and execution**.
 
 
-## 🛠️ Tech Stack
+## Tech Stack
 The backend is a Flask API (nea_agent.py) hosted on IBM Cloud. It fetches data from NEA's API to monitor the Environment.
 
 - Python + FastAPI  
@@ -89,7 +89,7 @@ The backend is a Flask API (nea_agent.py) hosted on IBM Cloud. It fetches data f
 - matplotlib (live visualization)
 
 
-## 🎥 Demo Flow
+## Demo Flow
 
 1. Pull live data from data.gov.sg  
 2. Show AI predicting a haze or heat risk  
@@ -100,9 +100,10 @@ https://youtu.be/M9EcBJu7QdE?si=WfQk9ZYcmbS7RvEZ
 
 
 
-## 📌 Repository
+## Repository
 
 https://github.com/shaira44444/urbanpulse
+
 
 
 
