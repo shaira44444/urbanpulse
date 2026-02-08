@@ -2,7 +2,8 @@ import os
 import socket
 import time
 import json
-# Force Render Rebuild - Final Version
+import random
+# Force Render Rebuild - Final Role-Based Update
 from flask import Flask, jsonify, Response, request, render_template, send_from_directory
 
 # -----------------------------
@@ -22,7 +23,6 @@ app = Flask(__name__)
 
 # ==============================================================================
 # GOD MODE: WSGI MIDDLEWARE (The Ultimate Bypass)
-# This sits ABOVE Flask. It intercepts the request before any login checks occur.
 # ==============================================================================
 class WatsonxBypassMiddleware:
     def __init__(self, app):
@@ -34,17 +34,17 @@ class WatsonxBypassMiddleware:
         # 1. TRAP THE SPECIFIC URL
         if path == '/api/watsonx-scenario':
             
-            # A. HANDLE BROWSER TEST (GET) - Proves the tunnel is open
+            # A. HANDLE BROWSER TEST (GET)
             if environ['REQUEST_METHOD'] == 'GET':
                 status = '200 OK'
                 headers = [('Content-Type', 'application/json')]
                 start_response(status, headers)
-                return [b'{"status": "bypass_active", "message": "GOD MODE: Login Wall Destroyed. The tunnel is open."}']
+                return [b'{"status": "bypass_active", "message": "GOD MODE: Login Wall Destroyed."}']
 
-            # B. HANDLE AI REQUEST (POST) - Runs the logic manually
+            # B. HANDLE AI REQUEST (POST)
             if environ['REQUEST_METHOD'] == 'POST':
                 try:
-                    # Read the JSON body manually
+                    # Read JSON
                     try:
                         request_body_size = int(environ.get('CONTENT_LENGTH', 0))
                     except (ValueError):
@@ -52,19 +52,25 @@ class WatsonxBypassMiddleware:
                     
                     request_body = environ['wsgi.input'].read(request_body_size)
                     
-                    # Parse JSON
                     if not request_body:
                         payload = {}
                     else:
                         payload = json.loads(request_body)
                         
                     raw_key = payload.get("scenario_key", "")
+                    
+                    # --- THE SECRET SHORTCUT: DETECT ROLE FROM KEY ---
+                    # If key has "_public" (e.g. "severe_haze_public"), show User View.
+                    # Otherwise, show Admin/Clinic View.
+                    user_role = "admin"
+                    if "_public" in raw_key:
+                        user_role = "public"
+                        raw_key = raw_key.replace("_public", "") # Remove suffix to find real data
+                        
                     scenario_key = raw_key.strip().lower().replace(" ", "_")
 
-                    # --- RUN LOGIC MANUALLY (No Flask Request Context needed) ---
-                    # We import here to ensure we have access to the latest data
+                    # --- RUN LOGIC MANUALLY ---
                     from scenarios import DEMO_SCENARIOS
-                    import random 
                     global AGENT_SYSTEM
                     
                     if AGENT_SYSTEM is None:
@@ -77,59 +83,68 @@ class WatsonxBypassMiddleware:
                         start_response(status, headers)
                         return [json.dumps({"status": "error", "message": f"Invalid key: {raw_key}"}).encode('utf-8')]
 
-                    # GET THE BASE SCENARIO
+                    # GET THE BASE SCENARIO & ADD NOISE
                     base_scenario = DEMO_SCENARIOS[scenario_key]
-
-                    # --- THE MAGIC TRICK: SIMULATE LIVE SENSOR FLUCTUATION ---
-                    # We copy the data so we don't mess up the original file
                     live_scenario = base_scenario.copy()
                     live_psi = base_scenario["psi_data"].copy()
                     
-                    # Add random noise to make it look "Real-Time"
-                    # e.g., If Central is 215, it might become 212 or 218
                     for region in live_psi:
                         noise = random.randint(-4, 4) 
                         live_psi[region] += noise
-                    
                     live_scenario["psi_data"] = live_psi
-                    # ---------------------------------------------------------
 
-                    # Run Simulation with the NEW "Live" Data
+                    # RUN SIMULATION
                     result = AGENT_SYSTEM.run_cycle(live_scenario)
                     
-                    # --- DYNAMIC SUMMARY GENERATION (HUMAN-IN-THE-LOOP VERSION) ---
-                    # 1. Extract basic numbers
+                    # --- SMART SUMMARY GENERATION (ROLE BASED) ---
                     risk_data = result.get('risk_assessment', {})
                     psi_val = risk_data.get('current_psi', 'Unknown')
                     risk_level = risk_data.get('risk_level', 'UNKNOWN')
-                    
-                    # 2. Extract Regions
                     regions_list = risk_data.get('affected_regions', [])
                     regions_str = ", ".join([r.capitalize() for r in regions_list]) if regions_list else "None"
 
-                    # 3. Extract Supply Chain Info
-                    supply_data = result.get('supply_chain_actions', {})
-                    po_id = supply_data.get('po_id', 'No PO')
-                    total_cost = supply_data.get('total_value', '$0')
+                    # === BRANCHING LOGIC: PUBLIC vs CLINIC ===
                     
-                    # 4. Extract Clinic Info & Construct Smart Message
-                    clinics_count = result.get('healthcare_alerts', {}).get('total_clinics', 0)
-                    
-                    if clinics_count > 0:
-                        action_text = (
-                            f"RESPONSE: Alert sent to {clinics_count} clinics in {regions_str}. "
-                            f"Generated DRAFT Supply Order {po_id} (Value: {total_cost}). "
-                            f"Awaiting validation from Clinic Managers."
-                        )
-                    else:
-                        action_text = "RESPONSE: Monitoring mode active. No immediate intervention required."
+                    if user_role == "public":
+                        # --- PUBLIC VIEW (Health Advice Only) ---
+                        if risk_level == "LOW":
+                            advice = "✅ Air quality is Good. It is safe to go outside and exercise."
+                        elif risk_level == "MODERATE":
+                            advice = "⚠️ Air quality is Moderate. Vulnerable groups should reduce outdoor exertion."
+                        else: # Severe
+                            advice = "⛔ HAZARDOUS HAZE. Please stay indoors, close windows, and wear an N95 mask if you must go out."
 
-                    ai_summary = (
-                        f"🚨 REPORT: {scenario_key.replace('_', ' ').title()}. "
-                        f"Risk Level: {risk_level}. "
-                        f"Highest PSI: {psi_val}. "
-                        f"{action_text}"
-                    )
+                        ai_summary = (
+                            f"📢 PUBLIC ADVISORY: {scenario_key.replace('_', ' ').title()} Event.\n"
+                            f"🌍 Current PSI: {psi_val} ({risk_level}).\n"
+                            f"📍 Affected Areas: {regions_str}.\n"
+                            f"💡 HEALTH ADVICE: {advice}"
+                        )
+                        
+                    else:
+                        # --- CLINIC/ADMIN VIEW (Supply Chain Data) ---
+                        supply_data = result.get('supply_chain_actions', {})
+                        po_id = supply_data.get('po_id', 'No PO')
+                        total_cost = supply_data.get('total_value', '$0')
+                        clinics_count = result.get('healthcare_alerts', {}).get('total_clinics', 0)
+                        
+                        if clinics_count > 0:
+                            action_text = (
+                                f"RESPONSE: Alert sent to {clinics_count} clinics in {regions_str}. "
+                                f"Generated DRAFT Supply Order {po_id} (Value: {total_cost}). "
+                                f"Awaiting validation from Clinic Managers."
+                            )
+                        else:
+                            action_text = "RESPONSE: Monitoring mode active. No immediate intervention required."
+
+                        ai_summary = (
+                            f"🚨 COMMANDER REPORT: {scenario_key.replace('_', ' ').title()}. "
+                            f"Risk Level: {risk_level}. "
+                            f"Highest PSI: {psi_val}. "
+                            f"{action_text}"
+                        )
+
+                    # ===================================
                     
                     response_data = {
                         "status": "success",
@@ -137,7 +152,6 @@ class WatsonxBypassMiddleware:
                         "ai_summary": ai_summary,
                         "raw_data": result
                     }
-                    # -------------------------------------------
                     
                     status = '200 OK'
                     headers = [('Content-Type', 'application/json')]
@@ -150,10 +164,9 @@ class WatsonxBypassMiddleware:
                     start_response(status, headers)
                     return [json.dumps({"status": "error", "message": str(e)}).encode('utf-8')]
 
-        # 2. IF NOT OUR URL, LET FLASK HANDLE IT (Login page, etc.)
+        # 2. IF NOT OUR URL, LET FLASK HANDLE IT
         return self.app(environ, start_response)
 
-# Apply the middleware to the app
 app.wsgi_app = WatsonxBypassMiddleware(app.wsgi_app)
 # ==============================================================================
 
@@ -177,7 +190,6 @@ def config():
 # Scenario-based agent APIs
 # -----------------------------
 def _build_agent_system():
-    # Imports are inside so deployment won’t fail if you’re still adding files
     from agents import (
         EnvironmentSentinel,
         ScalestackAgent,
@@ -185,7 +197,6 @@ def _build_agent_system():
         HealthcarePreparednessAgent,
         SupplyChainAgent
     )
-
     sentinel = EnvironmentSentinel()
     sentinel.register_agent(ScalestackAgent())
     sentinel.register_agent(DynamiqMedicalAgent())
@@ -193,7 +204,6 @@ def _build_agent_system():
     sentinel.register_agent(SupplyChainAgent())
     return sentinel
 
-# Build once at startup
 AGENT_SYSTEM = None
 
 @app.get("/api/scenarios")
@@ -209,10 +219,8 @@ def list_scenarios():
 def run_scenario(scenario_key: str):
     global AGENT_SYSTEM
     from scenarios import DEMO_SCENARIOS
-    import random # Import random here just to be safe
+    import random 
 
-    # 1. HANDLE THE "NORMAL" BUTTON MAPPING
-    # If the website sends "normal", we force it to look for "low_haze"
     if scenario_key == "normal" or scenario_key == "normal_air_quality":
         scenario_key = "low_haze"
 
@@ -222,9 +230,7 @@ def run_scenario(scenario_key: str):
     if AGENT_SYSTEM is None:
         AGENT_SYSTEM = _build_agent_system()
 
-    # 2. APPLY THE RANDOM SENSOR NOISE (Just like we did for Watsonx)
     base_scenario = DEMO_SCENARIOS[scenario_key]
-    
     live_scenario = base_scenario.copy()
     live_psi = base_scenario["psi_data"].copy()
     
@@ -234,7 +240,6 @@ def run_scenario(scenario_key: str):
     
     live_scenario["psi_data"] = live_psi
 
-    # 3. RUN SIMULATION
     result = AGENT_SYSTEM.run_cycle(live_scenario)
     result["_meta"] = {"demo_mode": is_demo_mode(), "instance": INSTANCE}
     return jsonify(result)
@@ -286,25 +291,18 @@ def alert():
 # -----------------------------
 @app.route("/clinic")
 def clinic_dashboard():
-    # This serves the Clinic UI
     return send_from_directory("static", "clinic.html")
 
 @app.get("/api/clinic-poll")
 def clinic_poll():
-    """
-    The Clinic Dashboard calls this every 2 seconds to see if an alert exists.
-    It checks the latest cycle from the Agent System.
-    """
     global AGENT_SYSTEM
     if AGENT_SYSTEM is None:
         return jsonify({"status": "waiting"})
 
-    # Get the last memory/log from the agents
     memory = AGENT_SYSTEM.memory
     if not memory:
         return jsonify({"status": "waiting"})
 
-    # Look for the latest Healthcare Alert
     last_cycle = memory[-1]
     alert_data = last_cycle.get("healthcare_alerts", {})
     supply_data = last_cycle.get("supply_chain_actions", {})
@@ -312,7 +310,6 @@ def clinic_poll():
     if not alert_data:
         return jsonify({"status": "waiting"})
         
-    # If we found an alert, send it to the frontend!
     return jsonify({
         "status": "alert_active",
         "psi": last_cycle.get("risk_assessment", {}).get("current_psi", 0),
@@ -323,16 +320,11 @@ def clinic_poll():
 
 @app.post("/api/clinic-confirm-order")
 def confirm_order():
-    # This receives the FINAL confirmed amount from the Clinic UI
     data = request.json
     final_qty = data.get("confirmed_qty")
-    
     print(f"✅ CLINIC CONFIRMED ORDER: {final_qty} Masks")
     return jsonify({"status": "success", "message": f"Order for {final_qty} masks processed."})
 
-# -----------------------------
-# Local run
-# -----------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8080"))
     print(f"[UrbanPulse] Starting on 0.0.0.0:{port} | DEMO_MODE={is_demo_mode()} | FILE={__file__}")
