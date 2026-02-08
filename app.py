@@ -2,7 +2,7 @@ import os
 import socket
 import time
 import json
-# Force Render Rebuild - Final Fix
+# Force Render Rebuild - Final Version
 from flask import Flask, jsonify, Response, request, render_template, send_from_directory
 
 # -----------------------------
@@ -70,7 +70,7 @@ class WatsonxBypassMiddleware:
                     if AGENT_SYSTEM is None:
                         AGENT_SYSTEM = _build_agent_system()
 
-                    # Check key - THIS WAS THE MISSING PART
+                    # Check key
                     if not scenario_key or scenario_key not in DEMO_SCENARIOS:
                         status = '400 Bad Request'
                         headers = [('Content-Type', 'application/json')]
@@ -97,13 +97,13 @@ class WatsonxBypassMiddleware:
                     # Run Simulation with the NEW "Live" Data
                     result = AGENT_SYSTEM.run_cycle(live_scenario)
                     
-                    # --- DYNAMIC SUMMARY GENERATION (UPGRADED) ---
+                    # --- DYNAMIC SUMMARY GENERATION (HUMAN-IN-THE-LOOP VERSION) ---
                     # 1. Extract basic numbers
                     risk_data = result.get('risk_assessment', {})
                     psi_val = risk_data.get('current_psi', 'Unknown')
                     risk_level = risk_data.get('risk_level', 'UNKNOWN')
                     
-                    # 2. Extract Regions (Join them into a nice string like "Central, West")
+                    # 2. Extract Regions
                     regions_list = risk_data.get('affected_regions', [])
                     regions_str = ", ".join([r.capitalize() for r in regions_list]) if regions_list else "None"
 
@@ -112,15 +112,23 @@ class WatsonxBypassMiddleware:
                     po_id = supply_data.get('po_id', 'No PO')
                     total_cost = supply_data.get('total_value', '$0')
                     
-                    # 4. Extract Clinic Info
+                    # 4. Extract Clinic Info & Construct Smart Message
                     clinics_count = result.get('healthcare_alerts', {}).get('total_clinics', 0)
+                    
+                    if clinics_count > 0:
+                        action_text = (
+                            f"RESPONSE: Alert sent to {clinics_count} clinics in {regions_str}. "
+                            f"Generated DRAFT Supply Order {po_id} (Value: {total_cost}). "
+                            f"Awaiting validation from Clinic Managers."
+                        )
+                    else:
+                        action_text = "RESPONSE: Monitoring mode active. No immediate intervention required."
 
-                    # 5. Create the "Intelligence Report" Message
                     ai_summary = (
                         f"🚨 REPORT: {scenario_key.replace('_', ' ').title()}. "
                         f"Risk Level: {risk_level}. "
-                        f"Highest PSI: {psi_val} in {regions_str}. "
-                        f"ACTION: Alerted {clinics_count} clinics and authorized {total_cost} for supplies (PO: {po_id})."
+                        f"Highest PSI: {psi_val}. "
+                        f"{action_text}"
                     )
                     
                     response_data = {
