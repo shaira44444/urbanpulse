@@ -57,8 +57,9 @@ class WatsonxBypassMiddleware:
                     else:
                         payload = json.loads(request_body)
                         
-                    raw_key = payload.get("scenario_key", "")
-                    
+                    raw_key = payload.get("scenario_key")
+                    if raw_key is None:
+                        raw_key = ""                    
                     # --- THE SECRET SHORTCUT: DETECT ROLE FROM KEY ---
                     # If key has "_public" (e.g. "severe_haze_public"), show User View.
                     # Otherwise, show Admin/Clinic View.
