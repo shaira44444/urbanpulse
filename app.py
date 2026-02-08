@@ -209,6 +209,12 @@ def list_scenarios():
 def run_scenario(scenario_key: str):
     global AGENT_SYSTEM
     from scenarios import DEMO_SCENARIOS
+    import random # Import random here just to be safe
+
+    # 1. HANDLE THE "NORMAL" BUTTON MAPPING
+    # If the website sends "normal", we force it to look for "low_haze"
+    if scenario_key == "normal" or scenario_key == "normal_air_quality":
+        scenario_key = "low_haze"
 
     if scenario_key not in DEMO_SCENARIOS:
         return jsonify({"error": f"Unknown scenario '{scenario_key}'"}), 404
@@ -216,7 +222,20 @@ def run_scenario(scenario_key: str):
     if AGENT_SYSTEM is None:
         AGENT_SYSTEM = _build_agent_system()
 
-    result = AGENT_SYSTEM.run_cycle(DEMO_SCENARIOS[scenario_key])
+    # 2. APPLY THE RANDOM SENSOR NOISE (Just like we did for Watsonx)
+    base_scenario = DEMO_SCENARIOS[scenario_key]
+    
+    live_scenario = base_scenario.copy()
+    live_psi = base_scenario["psi_data"].copy()
+    
+    for region in live_psi:
+        noise = random.randint(-4, 4) 
+        live_psi[region] += noise
+    
+    live_scenario["psi_data"] = live_psi
+
+    # 3. RUN SIMULATION
+    result = AGENT_SYSTEM.run_cycle(live_scenario)
     result["_meta"] = {"demo_mode": is_demo_mode(), "instance": INSTANCE}
     return jsonify(result)
 
